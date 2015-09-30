@@ -9,9 +9,8 @@ namespace XLParser.AST
     public static class Asts
     {
         /// <summary>
-        /// Alias of PreOrder
+        /// Iterate over all nodes in the most efficient way available.
         /// </summary>
-        /// <see cref="PreOrder(IAstNode)"/>
         public static IEnumerable<IAstNode> AllNodes(this IAstNode root) => PreOrder(root); 
 
         /// <summary>

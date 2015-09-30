@@ -149,7 +149,7 @@ namespace XLParser.AST
 
         public NamedFunctionCall(string functionName, IEnumerable<Expr> args , bool isBuiltIn = true, bool canReturnReference = false) : base(functionName, isBuiltIn, canReturnReference)
         {
-            arguments = (args is List<Expr>) ? (List<Expr>)args : new List<Expr>(args);
+            arguments = new List<Expr>(args);
         }
     }
 
@@ -164,15 +164,7 @@ namespace XLParser.AST
 
         public virtual int Precedence => Operator.Precedence();
 
-        private  bool MustBeParenthesised(FunctionCall parent)
-        {
-            return parent != null && (
-                    // Unions as arguments must be parenthesised
-                    (Operator == Operator.Union && parent is NamedFunctionCall)
-                    // If parents have higher precedence this must be parenthesized
-                    || (parent is Op && ((Op)parent).Precedence > Precedence)
-                );
-        }
+        
     }
 
     public class UnOp : Op

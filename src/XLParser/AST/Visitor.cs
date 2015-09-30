@@ -7,6 +7,12 @@ using System.Threading.Tasks;
 
 namespace XLParser.AST
 {
+    // Confused about visitors?
+    // I found this article excellent: http://www.codeproject.com/Articles/588882/TheplusVisitorplusPatternplusExplained
+    // It really explains what visitors do, and the differences between iterations
+    // Note C# 4 introduced native double dispatch, which is why our interface is a lot simpler and we don't need to repeat Accept() in every node.
+
+
     /// <summary>
     /// Interface for AST visitors with parameters and return types.
     /// If you want more than one parameter, make a tuple.
@@ -80,5 +86,6 @@ namespace XLParser.AST
         public static IAstVisitor AsVisitor(Action<IAstNode> f) => new LamdbaVisitor(f);
         public static IAstVisitor<TReturn> AsVisitor<TReturn>(Func<IAstNode,TReturn> f) => new LamdbaVisitor<TReturn>(f);
         public static IAstVisitor<TParam, TReturn> AsVisitor<TParam,TReturn>(Func<IAstNode, TParam, TReturn> f) => new LamdbaVisitor<TParam,TReturn>(f);
+
     }
 }
