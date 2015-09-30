@@ -6,11 +6,12 @@ using System.Threading.Tasks;
 
 namespace XLParser.AST
 {
-    public static class AstMethods
+    public static class Asts
     {
         /// <summary>
-        /// Return all nodes in the tree
+        /// Alias of PreOrder
         /// </summary>
+        /// <see cref="PreOrder(IAstNode)"/>
         public static IEnumerable<IAstNode> AllNodes(this IAstNode root) => PreOrder(root); 
 
         /// <summary>
@@ -28,24 +29,53 @@ namespace XLParser.AST
 
                 // Push children on in reverse order so that they will
                 // be evaluated left -> right when popped.
-
-                // Check if it's a list, if so we can do it a lot more efficiently than the LINQ Reverse method which always buffers
-                if (root.ChildNodes is IList<IAstNode>)
+                foreach (var child in ReverseChildrenEfficient(node))
                 {
-                    var childL = (IList<AstNode>) root.ChildNodes;
-                    for (int i = childL.Count - 1; i >= 0; i--)
-                    {
-                        stack.Push(childL[i]);
-                    }
-                }
-                else
-                {
-                    foreach (var child in node.ChildNodes.Reverse())
-                    {
-                        stack.Push(child);
-                    }
+                    stack.Push(child);
                 }
             }
+        }
+
+        private static IEnumerable<IAstNode> ReverseChildrenEfficient(IAstNode node)
+        {
+            // Check if it's a list, if so we can do it a lot more efficiently than the LINQ Reverse method which always buffers
+            // Using the XLParser implementation it should always be a list/array
+            if (node.ChildNodes is IList<IAstNode>)
+            {
+                var childL = (IList<AstNode>)node.ChildNodes;
+                for (int i = childL.Count - 1; i >= 0; i--)
+                {
+                    yield return childL[i];
+                }
+            }
+            else
+            {
+                foreach (var child in node.ChildNodes.Reverse())
+                {
+                    yield return child;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Traverse the tree in post-order
+        /// </summary>
+        public static IEnumerable<IAstNode> PostOrder(this IAstNode root)
+        {
+            var discoverStack = new Stack<IAstNode>();
+            var returnStack = new Stack<IAstNode>();
+            discoverStack.Push(root);
+            while (discoverStack.Count > 0)
+            {
+                var node = discoverStack.Pop();
+                returnStack.Push(node);
+                // Left childnode get to the bottom of the discoverstack, so to the top of the return stack
+                foreach (var child in node.ChildNodes)
+                {
+                    discoverStack.Push(child);
+                }
+            }
+            return returnStack;
         }
 
         /// <summary>
@@ -75,7 +105,7 @@ namespace XLParser.AST
         {
             var dict = new Dictionary<IAstNode, IAstNode>();
 
-            foreach(var node in root.AllNodes())
+            foreach (var node in root.AllNodes())
             {
                 foreach (var child in node.ChildNodes)
                 {

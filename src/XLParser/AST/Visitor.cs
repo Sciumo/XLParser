@@ -8,16 +8,29 @@ using System.Threading.Tasks;
 namespace XLParser.AST
 {
     /// <summary>
-    /// Interface for AST visitors
+    /// Interface for AST visitors with parameters and return types.
+    /// If you want more than one parameter, make a tuple.
+    /// Note that these visitors <strong>have to call the childnodes themselves</strong>.
     /// </summary>
+    /// <seealso cref="Asts.PreOrder(IAstNode)"/>
+    /// <seealso cref="Asts.PostOrder(IAstNode)"/>
+    /// <seealso cref="Asts.LevelOrder(IAstNode)"/>
+    /// <example>
+    /// public class MultipleParameterVisitor : IAstVisitor{Tuple{Param1,Param2},MyReturnType}
+    /// {}
+    /// </example>
     public interface IAstVisitor<in TParams, out TReturn>
     {
         TReturn Visit(IAstNode node, TParams Params);
     }
 
     /// <summary>
-    /// Interface for AST visitors
+    /// Interface for AST visitors.
+    /// Note that these visitors <strong>have to call the childnodes themselves</strong>.
     /// </summary>
+    /// <seealso cref="Asts.PreOrder(IAstNode)"/>
+    /// <seealso cref="Asts.PostOrder(IAstNode)"/>
+    /// <seealso cref="Asts.LevelOrder(IAstNode)"/>
     public interface IAstVisitor<out TReturn>
     {
         TReturn Visit(IAstNode node);
@@ -41,7 +54,7 @@ namespace XLParser.AST
         void Accept(IAstVisitor visitor);
     }
 
-    public static class Visitor
+    public static class Visitors
     {
         public class LamdbaVisitor : IAstVisitor
         {

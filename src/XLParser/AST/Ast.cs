@@ -9,8 +9,6 @@ using Irony.Parsing;
 
 namespace XLParser.AST
 {
-    
-
     public interface IAstNodeFromParseTree
     {
         /// <summary>
