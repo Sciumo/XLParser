@@ -21,7 +21,7 @@ namespace XLParser.AST
     /// <summary>
     /// Interface for XLParser AST Nodes.
     /// </summary>
-    public interface IAstNode : IEquatable<IAstNode>, IVisitable
+    public interface IAstNode : IEquatable<IAstNode>
     {
         /// <summary>
         /// All child nodes
@@ -74,24 +74,6 @@ namespace XLParser.AST
             const int prime2 = 4579711;
             int hash = unchecked (prime1*prime2 + GetType().GetHashCode());
             return ChildNodes.Aggregate(hash, (current, child) => unchecked (current*prime2 + child.GetHashCode()));
-        }
-
-        public TReturn Accept<TParam, TReturn>(IAstVisitor<TParam, TReturn> visitor, TParam Params)
-        {
-            dynamic node = this;
-            return visitor.Visit(node, Params);
-        }
-
-        public TReturn Accept<TReturn>(IAstVisitor<TReturn> visitor)
-        {
-            dynamic node = this;
-            return visitor.Visit(node);
-        }
-
-        public void Accept(IAstVisitor visitor)
-        {
-            dynamic node = this;
-            visitor.Visit(node);
         }
     }
 

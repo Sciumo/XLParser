@@ -10,82 +10,120 @@ namespace XLParser.AST
     // Confused about visitors?
     // I found this article excellent: http://www.codeproject.com/Articles/588882/TheplusVisitorplusPatternplusExplained
     // It really explains what visitors do, and the differences between iterations
-    // Note C# 4 introduced native double dispatch, which is why our interface is a lot simpler and we don't need to repeat Accept() in every node.
-
-
-    /// <summary>
-    /// Interface for AST visitors with parameters and return types.
-    /// If you want more than one parameter, make a tuple.
-    /// Note that these visitors <strong>have to call the childnodes themselves</strong>.
-    /// </summary>
-    /// <seealso cref="Asts.PreOrder(IAstNode)"/>
-    /// <seealso cref="Asts.PostOrder(IAstNode)"/>
-    /// <seealso cref="Asts.LevelOrder(IAstNode)"/>
-    /// <example>
-    /// public class MultipleParameterVisitor : IAstVisitor{Tuple{Param1,Param2},MyReturnType}
-    /// {}
-    /// </example>
-    public interface IAstVisitor<in TParams, out TReturn>
-    {
-        TReturn Visit(IAstNode node, TParams Params);
-    }
+    // Note C# 4 introduced native double dispatch, which is why we do not have an interface and only a base class you can inherit from if you want
 
     /// <summary>
-    /// Interface for AST visitors.
-    /// Note that these visitors <strong>have to call the childnodes themselves</strong>.
+    /// Base class for AST Visitors.
+    /// To use this, subclass this and implement Visit(? : IAstNode, TParams param) methods for every node type you want to handle,
+    /// and optionally the VisitUnhandled(IAstNode, TParams param) method.
     /// </summary>
-    /// <seealso cref="Asts.PreOrder(IAstNode)"/>
-    /// <seealso cref="Asts.PostOrder(IAstNode)"/>
-    /// <seealso cref="Asts.LevelOrder(IAstNode)"/>
-    public interface IAstVisitor<out TReturn>
+    /// <seealso cref="Asts.PreOrder"/>
+    /// <seealso cref="Asts.PostOrder"/>
+    public abstract class Visitor<TParams, TReturn>
     {
-        TReturn Visit(IAstNode node);
-    }
-
-    /// <summary>
-    /// Interface for AST visitors
-    /// </summary>
-    public interface IAstVisitor
-    {
-        void Visit(IAstNode node);
-    }
-
-    /// <summary>
-    /// Visitor interface for AST
-    /// </summary>
-    public interface IVisitable
-    {
-        TReturn Accept<TParam, TReturn>(IAstVisitor<TParam, TReturn> visitor, TParam Param);
-        TReturn Accept<TReturn>(IAstVisitor<TReturn> visitor);
-        void Accept(IAstVisitor visitor);
-    }
-
-    public static class Visitors
-    {
-        public class LamdbaVisitor : IAstVisitor
+        protected virtual TReturn VisitUnhandled(IAstNode node, TParams param)
         {
-            private Action<IAstNode> f { get; }
-            public LamdbaVisitor(Action<IAstNode> f) { this.f = f; }
-            public void Visit(IAstNode node) => f(node);
+            throw new ArgumentException($"Class {GetType()} cannot handle node type {node.GetType()}", nameof(node));
         }
 
-        public class LamdbaVisitor<TReturn> : IAstVisitor<TReturn>
+        private IAstNode previousVisited;
+        public TReturn Visit(IAstNode node, TParams param)
         {
-            private Func<IAstNode,TReturn> f { get; }
-            public LamdbaVisitor(Func<IAstNode, TReturn> f) { this.f = f; }
-            public TReturn Visit(IAstNode node) => f(node);
+            // If we visited this node, we're recursively calling this dispatcher, so go to the default handler
+            if (ReferenceEquals(node, previousVisited))
+            {
+                return VisitUnhandled(node, param);
+
+            }
+            else
+            {
+                previousVisited = node;
+                try
+                {
+                    return Visit((dynamic) node, param);
+                }
+                finally
+                {
+                    // Make sure to set previousVisited to null, otherwise consecutive calls could go wrong.
+                    previousVisited = null;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Base class for AST Visitors.
+    /// To use this, subclass this and implement Visit(? : IAstNode) methods for every node type you want to handle,
+    /// and optionally the VisitUnhandled(IAstNode) method.
+    /// </summary>
+    /// <seealso cref="Asts.PreOrder"/>
+    /// <seealso cref="Asts.PostOrder"/>
+    public abstract class Visitor<TReturn>
+    {
+        protected virtual TReturn VisitUnhandled(IAstNode node)
+        {
+            throw new ArgumentException($"Class {GetType()} cannot handle node type {node.GetType()}", nameof(node));
         }
 
-        public class LamdbaVisitor<TParam,TReturn> : IAstVisitor<TParam,TReturn>
+        private IAstNode previousVisited;
+        public TReturn Visit(IAstNode node)
         {
-            private Func<IAstNode, TParam, TReturn> f { get; }
-            public LamdbaVisitor(Func<IAstNode, TParam, TReturn> f) { this.f = f; }
-            public TReturn Visit(IAstNode node, TParam p) => f(node, p);
+            // If we visited this node, we're recursively calling this dispatcher, so go to the default handler
+            if (ReferenceEquals(node, previousVisited))
+            {
+                return VisitUnhandled(node);
+            }
+            else
+            {
+                previousVisited = node;
+                try
+                {
+                    return Visit((dynamic) node);
+                }
+                finally
+                {
+                    // Make sure to set previousVisited to null, otherwise consecutive calls could go wrong.
+                    previousVisited = null;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Base class for AST Visitors.
+    /// To use this, subclass this and implement Visit(? : IAstNode) methods for every node type you want to handle,
+    /// and optionally the VisitUnhandled(IAstNode) method.
+    /// </summary>
+    /// <seealso cref="Asts.PreOrder"/>
+    /// <seealso cref="Asts.PostOrder"/>
+    public abstract class Visitor
+    {
+        protected virtual void VisitUnhandled(IAstNode node)
+        {
+            throw new ArgumentException($"Class {GetType()} cannot handle node type {node.GetType()}", nameof(node));
         }
 
-        public static IAstVisitor AsVisitor(Action<IAstNode> f) => new LamdbaVisitor(f);
-        public static IAstVisitor<TReturn> AsVisitor<TReturn>(Func<IAstNode,TReturn> f) => new LamdbaVisitor<TReturn>(f);
-        public static IAstVisitor<TParam, TReturn> AsVisitor<TParam,TReturn>(Func<IAstNode, TParam, TReturn> f) => new LamdbaVisitor<TParam,TReturn>(f);
-
+        private IAstNode previousVisited;
+        public void Visit(IAstNode node)
+        {
+            // If we visited this node, we're recursively calling this dispatcher, so go to the default handler
+            if (ReferenceEquals(node, previousVisited))
+            {
+                VisitUnhandled(node);
+            }
+            else
+            {
+                previousVisited = node;
+                try
+                {
+                    Visit((dynamic) node);
+                }
+                finally
+                {
+                    // Make sure to set previousVisited to null, otherwise consecutive calls could go wrong.
+                    previousVisited = null;
+                }
+            }
+        }
     }
 }

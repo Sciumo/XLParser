@@ -17,7 +17,7 @@ namespace XLParser.AST
     /// <summary>
     /// Prints an AST to an Excel formula string
     /// </summary>
-    public class Printer : IAstVisitor<string>
+    public class Printer
     {
         /// <summary>
         /// Whether to include the precedeing "=" for formulas and "{=...}" for array formulas.
@@ -29,9 +29,16 @@ namespace XLParser.AST
         /// </summary>
         public Dialect Dialect { get; set; } = Dialect.Excel2007;
 
-        public string Visit(IAstNode node)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="node"></param>
+        /// <param name="recursive"></param>
+        /// <returns></returns>
+        public string Visit(IAstNode node, bool recursive = false)
         {
-            throw new NotImplementedException($"Printer cannot handle node type {node.GetType()}");
+            if(recursive) throw new ArgumentException($"Node of type {node.GetType()} cannot be printed.", nameof(node));
+            return Visit((dynamic) node, true);
         }
 
         public string Visit(Formula node)
@@ -68,7 +75,7 @@ namespace XLParser.AST
         {
             if (n.Operator.IsReferenceOperator())
             {
-                return n.LArgument.Accept(this) + n.Operator.Symbol() + n.RArgument.Accept(this);
+                return  + n.Operator.Symbol() + n.RArgument.Accept(this);
             }
             else
             {
