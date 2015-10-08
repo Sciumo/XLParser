@@ -37,15 +37,43 @@ namespace XLParser.AST
         bool IsLeaf { get; }
     }
 
+    public interface IExpr : IAstNode
+    {
+
+    }
+
+    public interface IRefExpr : IExpr
+    {
+
+    }
+
+    public interface IFunctionCall : IAstNode
+    {
+        bool IsBuiltIn { get; }
+        bool IsConditional { get; }
+        bool CanReturnReference { get; }
+        IEnumerable<IExpr> Arguments { get; }
+        string FunctionName { get; }
+    }
+
+    public interface IOp : IFunctionCall
+    {
+        Operator Operator { get; }
+        int Precedence { get; }
+    }
+
+    public interface IConstant : IAstNode { }
+
+    public interface IPrefix : IAstNode { }
+
+
     /// <summary>
     /// Base class for XLParser AST Nodes
     /// </summary>
     /// <remarks>
     /// Irony has an AST system, but we did not find it very user-friendly. This also allows us to decouple Irony should the need arise.
     /// 
-    /// Unfortunatly C# 6 (the newest version at the type of writing) does not support Algebraic Data Types/Pattern matching yet, which would be *really* convenient for this class.
-    /// The properties of <a href="https://github.com/dotnet/roslyn/issues/206">the proposal</a> as it was in late 2015 have been followed as closely as possible, but we are obviously limited by language support at the time.
-    /// Inspiration has also been taken from <a href="http://bugsquash.blogspot.co.uk/2012/01/encoding-algebraic-data-types-in-c.html">this blog post</a> which bases it's implementation on F#.
+    /// Unfortunatly C# 6 (the newest version at the type of writing) does not support Algebraic Data Types/Pattern matching yet, which would be *really* convenient for the AST.
     /// </remarks>
     public abstract class AstNode : IAstNode
     {
@@ -61,6 +89,7 @@ namespace XLParser.AST
         public virtual bool Equals(IAstNode other)
         {
             if (ReferenceEquals(other, null)) return false;
+            if (ReferenceEquals(this, other)) return true;
 
             return GetType() == other.GetType()
                 // Compare all children
@@ -70,122 +99,161 @@ namespace XLParser.AST
 
         public override int GetHashCode()
         {
-            const int prime1 = 1631027;
-            const int prime2 = 4579711;
-            int hash = unchecked (prime1*prime2 + GetType().GetHashCode());
-            return ChildNodes.Aggregate(hash, (current, child) => unchecked (current*prime2 + child.GetHashCode()));
+            int hash = unchecked (PRIME1*PRIME2 + GetType().GetHashCode());
+            return ChildNodes.Aggregate(hash, (current, child) => unchecked (current*PRIME2 + child.GetHashCode()));
         }
+
+        protected const int PRIME1 = 1631027;
+        protected const int PRIME2 = 4579711;
     }
 
-    public class Formula : AstNode
+    public class Root : AstNode
     {
-        public Expr Expr { get; }
+        public IExpr Expr { get; }
         public bool IsArrayFormula { get; }
 
-        public Formula(Expr expr, bool isArrayFormula = false)
+        public Root(IExpr expr, bool isArrayFormula = false)
         {
             IsArrayFormula = isArrayFormula;
             Expr = expr;
         }
 
         public override IEnumerable<IAstNode> ChildNodes => new[] { Expr };
+
+        public override bool Equals(IAstNode other) => (other as Root)?.IsArrayFormula == IsArrayFormula && base.Equals(other);
+
+        public override int GetHashCode() => unchecked(base.GetHashCode() * PRIME2 + IsArrayFormula.GetHashCode());
     }
-
-
-    public abstract class Expr : AstNode
-    {}
 
     /// <summary>
     /// This is a Dummy node for empty arguments of functions
     /// </summary>
-    public class EmptyArgument : Expr
+    public class EmptyArgument : AstNode, IExpr
     {
         public override IEnumerable<IAstNode> ChildNodes => Enumerable.Empty<IAstNode>();
     }
 
-    public abstract class FunctionCall : Expr
+    public abstract class FunctionCall : AstNode, IExpr, IFunctionCall
     {
-        public bool IsBuiltIn { get; }
+        protected readonly List<IExpr> arguments;
 
-        public abstract IEnumerable<Expr> Arguments { get; }
+        public IEnumerable<IExpr> Arguments => arguments.AsReadOnly();
 
         public string FunctionName { get; }
 
         public override IEnumerable<IAstNode> ChildNodes => Arguments;
 
-        public bool CanReturnReference { get; }
+        public abstract bool IsBuiltIn { get; }
+        // TODO: Keep? Implement?
+        public virtual bool IsConditional { get { throw new NotImplementedException(); } }
+        public virtual bool CanReturnReference => this is IRefExpr;
 
-        protected FunctionCall(string functionName, bool isBuiltIn = true, bool canReturnReference = false)
+        protected FunctionCall(string functionName, IEnumerable<IExpr> args)
         {
             FunctionName = functionName;
-            IsBuiltIn = isBuiltIn;
-            CanReturnReference = canReturnReference;
+            arguments = new List<IExpr>(args);
         }
+
+        public override bool Equals(IAstNode other) => (other as FunctionCall)?.FunctionName == FunctionName && base.Equals(other);
+
+        public override int GetHashCode() => unchecked(base.GetHashCode() * PRIME2 + FunctionName.GetHashCode());
     }
 
     public class NamedFunctionCall : FunctionCall
     {
-        private readonly List<Expr> arguments;
+        public override bool IsBuiltIn => true;
 
-        public override IEnumerable<Expr> Arguments => arguments.AsReadOnly();
-
-        public NamedFunctionCall(string functionName, IEnumerable<Expr> args , bool isBuiltIn = true, bool canReturnReference = false) : base(functionName, isBuiltIn, canReturnReference)
-        {
-            arguments = new List<Expr>(args);
-        }
+        public NamedFunctionCall(string functionName, IEnumerable<IExpr> args) : base(functionName, args)
+        {}
     }
 
-    public abstract class Op : FunctionCall
+    public class NamedRefFunctionCall : NamedFunctionCall, IRefExpr
+    {
+        public NamedRefFunctionCall(string functionName, IEnumerable<IExpr> args) : base(functionName, args)
+        { }
+    }
+
+    public class UDFunctionCall : AstNode, IFunctionCall, IRefExpr
+    {
+        public bool IsBuiltIn => false;
+
+        public bool IsConditional => false;
+
+        public bool CanReturnReference => true;
+
+        private readonly List<IExpr> arguments;
+
+        public IEnumerable<IExpr> Arguments => arguments.AsReadOnly();
+
+        public string FunctionName { get; }
+
+        public override IEnumerable<IAstNode> ChildNodes => Arguments;
+
+        public UDFunctionCall(string functionName, IEnumerable<IExpr> args)
+        {
+            FunctionName = FunctionName;
+            arguments = new List<IExpr>(args);
+        }
+
+        public override bool Equals(IAstNode other) => (other as FunctionCall)?.FunctionName == FunctionName && base.Equals(other);
+
+        public override int GetHashCode() => unchecked(base.GetHashCode() * PRIME2 + FunctionName.GetHashCode());
+    }
+
+    public abstract class Op : FunctionCall, IOp
     {
         public Operator Operator { get; }
 
-        protected Op(Operator op) : base(op.Symbol(), true, op.IsReferenceOperator())
+        public override bool IsBuiltIn => true;
+
+        protected Op(Operator op, IEnumerable<IExpr> args) : base(op.Symbol(), args)
         {
             Operator = op;
         }
 
         public virtual int Precedence => Operator.Precedence();
-
-        
     }
 
     public class UnOp : Op
     {
-        public Expr Argument { get; }
-
-        public override IEnumerable<Expr> Arguments => new [] { Argument };
+        public IExpr Argument => arguments[0];
 
         public override int Precedence => Operator.IsUnaryPreFix() ? Operators.Precedences.UnaryPreFix : Operators.Precedences.UnaryPostFix;
 
-        public UnOp(Operator op, Expr argument) :  base(op)
+        public UnOp(Operator op, IExpr argument) :  base(op, new List<IExpr> { argument })
         {
-            if(!op.IsUnary()) throw new ArgumentException("Not an unary operator", nameof(op));
-            Argument = argument;
+            if(!op.IsUnary()) throw new ArgumentException($"Not an unary operator <<{op.Symbol()}>>", nameof(op));
         }
     }
 
     public class BinOp : Op
     {
-        public Expr LArgument { get; }
-        public Expr RArgument { get; }
+        public IExpr LArgument => arguments[0];
+        public IExpr RArgument => arguments[1];
 
-        public override IEnumerable<Expr> Arguments => new[] {LArgument, RArgument};
-
-        public BinOp(Operator op, Expr lArgument, Expr rArgument) : base(op)
+        public BinOp(Operator op, IExpr lArgument, IExpr rArgument) : base(op, new [] { lArgument, rArgument} )
         {
-            if (!op.IsBinary()) throw new ArgumentException("Not an binary operator", nameof(op));
-
-            LArgument = lArgument;
-            RArgument = rArgument;
+            if (!op.IsBinary()) throw new ArgumentException($"Not a binary operator <<{op.Symbol()}>>", nameof(op));
         }
     }
 
-    public abstract class Reference : Expr
+    public class RefOp : BinOp, IRefExpr
+    {
+        public new IRefExpr LArgument => (IRefExpr)base.LArgument;
+        public new IRefExpr RArgument => (IRefExpr)base.RArgument;
+
+        public RefOp(Operator op, IRefExpr lArgument, IRefExpr rArgument) : base(op, lArgument, rArgument )
+        {
+            if (!op.IsReferenceOperator()) throw new ArgumentException($"Not a reference operator <<{op.Symbol()}>>", nameof(op));
+        }
+    }
+
+    public abstract class Reference : AstNode, IRefExpr
     {
         Prefix Prefix { get; }
         ReferenceItem ReferenceItem { get; }
 
-        protected Reference(Prefix prefix, Expr expr)
+        protected Reference(Prefix prefix, ReferenceItem item)
         {
         }
     }
