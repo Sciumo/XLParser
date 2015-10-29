@@ -1,11 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2013
-VisualStudioVersion = 12.0.31101.0
+# Visual Studio 14
+VisualStudioVersion = 14.0.23107.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XLParser", "XLParser\XLParser.csproj", "{FB048D20-29FD-4D2C-A336-59F93F9A68F3}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XLParser.Tests", "XLParser.Tests\XLParser.Tests.csproj", "{699A456A-7028-41EA-9CD0-96D1ED4DDF75}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XLParser.DebugVisualizer", "XLParser.DebugVisualizer\XLParser.DebugVisualizer.csproj", "{3480B295-A984-4432-B8D6-F2DE908C57AD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -36,6 +38,16 @@ Global
 		{699A456A-7028-41EA-9CD0-96D1ED4DDF75}.Release|Any CPU.Build.0 = Release|Any CPU
 		{699A456A-7028-41EA-9CD0-96D1ED4DDF75}.Staging|Any CPU.ActiveCfg = Release|Any CPU
 		{699A456A-7028-41EA-9CD0-96D1ED4DDF75}.Staging|Any CPU.Build.0 = Release|Any CPU
+		{3480B295-A984-4432-B8D6-F2DE908C57AD}.Build|Any CPU.ActiveCfg = Release|Any CPU
+		{3480B295-A984-4432-B8D6-F2DE908C57AD}.Build|Any CPU.Build.0 = Release|Any CPU
+		{3480B295-A984-4432-B8D6-F2DE908C57AD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3480B295-A984-4432-B8D6-F2DE908C57AD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3480B295-A984-4432-B8D6-F2DE908C57AD}.Production|Any CPU.ActiveCfg = Release|Any CPU
+		{3480B295-A984-4432-B8D6-F2DE908C57AD}.Production|Any CPU.Build.0 = Release|Any CPU
+		{3480B295-A984-4432-B8D6-F2DE908C57AD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3480B295-A984-4432-B8D6-F2DE908C57AD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3480B295-A984-4432-B8D6-F2DE908C57AD}.Staging|Any CPU.ActiveCfg = Release|Any CPU
+		{3480B295-A984-4432-B8D6-F2DE908C57AD}.Staging|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
